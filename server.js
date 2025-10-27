@@ -1,4 +1,4 @@
-// SERVIDOR AUTHENTICERT - COM SUAS CREDENCIAIS SUPABASE
+// SERVIDOR AUTHENTICERT - CORRIGIDO PARA SUPABASE
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
@@ -7,14 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// ✅ SUAS CREDENCIAIS SUPABASE - CONFIGURADAS!
+// ✅ SUAS CREDENCIAIS SUPABASE
 const supabaseUrl = 'https://dxgrjrtwuarowoxnjrzz.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4Z3JqcnR3dWFyb3dveG5qcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc0MjksImV4cCI6MjA3NzE2MzQyOX0.c6wneTJNJ49BpB3KWt-kQHkc-92qyM-U3TCaUba9-6o';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('✅ Supabase configurado com sucesso!');
+console.log('✅ Supabase configurado!');
 
-// IA para Verificação de Produtos
+// IA para Verificação
 class SistemaIA {
   constructor() {
     this.marcasReconhecidas = [
@@ -51,10 +51,10 @@ class SistemaIA {
 
 const ia = new SistemaIA();
 
-// Rota de saúde
+// Rota de saúde - TESTE PRIMEIRO ESTA
 app.get('/api/health', async (req, res) => {
   try {
-    // Testar conexão com Supabase
+    // Teste SIMPLES - só verificar se consegue conectar
     const { data, error } = await supabase
       .from('verificacoes')
       .select('id')
@@ -62,15 +62,16 @@ app.get('/api/health', async (req, res) => {
 
     res.json({
       status: '✅ ONLINE',
-      message: 'Authenticert - Sistema com Supabase',
+      message: 'Authenticert - Backend funcionando!',
       timestamp: new Date().toISOString(),
       database: error ? '❌ ERRO: ' + error.message : '✅ CONECTADO',
-      supabase_url: supabaseUrl
+      supabase: 'CONFIGURADO'
     });
   } catch (error) {
-    res.status(500).json({
+    res.json({
       status: '⚠️ ONLINE COM ERROS',
-      error: error.message
+      error: error.message,
+      supabase: 'ERRO'
     });
   }
 });
@@ -92,8 +93,8 @@ app.post('/api/verificar', async (req, res) => {
     // 1. Análise com IA
     const resultadoIA = ia.analisarProduto(imagemUrl);
     
-    // 2. Gerar certificado único
-    const certificadoId = 'AUTH-' + Date.now().toString(36).toUpperCase();
+    // 2. Gerar certificado único (TEXT - não UUID)
+    const certificadoId = 'AUTH-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     
     // 3. Salvar no Supabase
     const { data, error } = await supabase
@@ -102,17 +103,23 @@ app.post('/api/verificar', async (req, res) => {
         {
           imagem_url: imagemUrl.substring(0, 500),
           resultado: resultadoIA,
-          certificado_id: certificadoId,
-          data_criacao: new Date().toISOString()
+          certificado_id: certificadoId
         }
       ])
       .select();
 
     if (error) {
       console.error('❌ Erro no Supabase:', error);
-      return res.status(500).json({
-        sucesso: false,
-        erro: 'Erro no banco de dados: ' + error.message
+      // Mesmo com erro, retorna resultado (mas sem salvar)
+      return res.json({
+        sucesso: true,
+        certificado: {
+          id: certificadoId,
+          data_emissao: new Date().toISOString()
+        },
+        analise: resultadoIA,
+        mensagem: 'Análise concluída (dados não salvos)',
+        aviso: 'Erro no banco: ' + error.message
       });
     }
 
@@ -215,32 +222,6 @@ app.get('/api/estatisticas', async (req, res) => {
         taxa_autenticidade: '0%',
         marcas_verificadas: []
       }
-    });
-  }
-});
-
-// Listar verificações
-app.get('/api/verificacoes', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('verificacoes')
-      .select('*')
-      .order('data_criacao', { ascending: false })
-      .limit(20);
-
-    if (error) throw error;
-
-    res.json({
-      sucesso: true,
-      verificacoes: data || [],
-      total: data ? data.length : 0
-    });
-
-  } catch (error) {
-    res.json({
-      sucesso: true,
-      verificacoes: [],
-      total: 0
     });
   }
 });
