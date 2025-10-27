@@ -141,6 +141,49 @@
             display: inline-block;
             margin-top: 10px;
         }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .score-item {
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li:before {
+            content: "✅";
+        }
+
+        .feature-list li.problema:before {
+            content: "❌";
+        }
+
+        .certificado {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid #27ae60;
+        }
     </style>
 </head>
 <body>
@@ -172,17 +215,19 @@
     </div>
 
     <script>
-        // ✅ SUBSTITUA COM A URL DO SEU BACKEND NO RENDER
-        const BACKEND_URL = 'https://authenticert.onrender.com';
+        // ✅ SUA URL DO BACKEND NO RENDER
+        const BACKEND_URL = 'https://authenticert-backend.onrender.com';
 
         // Elementos da página
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const selectButton = document.getElementById('selectButton');
-        const imagePreview = document.getElementById('imagePreview');
-        const loading = document.getElementById('loading');
-        const resultadoDiv = document.getElementById('resultado');
-        const statusDiv = document.getElementById('status');
+        const elements = {
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            selectButton: document.getElementById('selectButton'),
+            imagePreview: document.getElementById('imagePreview'),
+            loading: document.getElementById('loading'),
+            resultado: document.getElementById('resultado'),
+            status: document.getElementById('status')
+        };
 
         // Verificar status do servidor
         async function checkServerStatus() {
@@ -191,24 +236,24 @@
                 const data = await response.json();
                 
                 if (data.status === '✅ ONLINE') {
-                    statusDiv.innerHTML = '✅ <strong>Sistema Online</strong>';
-                    statusDiv.style.background = 'rgba(46, 204, 113, 0.3)';
+                    elements.status.innerHTML = '✅ <strong>Sistema Online</strong>';
+                    elements.status.style.background = 'rgba(46, 204, 113, 0.3)';
                 } else {
-                    statusDiv.innerHTML = '⚠️ <strong>Sistema com problemas</strong>';
+                    elements.status.innerHTML = '⚠️ <strong>Sistema com problemas</strong>';
                 }
             } catch (error) {
-                statusDiv.innerHTML = '❌ <strong>Servidor offline</strong>';
-                statusDiv.style.background = 'rgba(231, 76, 60, 0.3)';
+                elements.status.innerHTML = '❌ <strong>Servidor offline</strong>';
+                elements.status.style.background = 'rgba(231, 76, 60, 0.3)';
             }
         }
 
         // Quando clicar no botão de selecionar
-        selectButton.addEventListener('click', () => {
-            fileInput.click();
+        elements.selectButton.addEventListener('click', () => {
+            elements.fileInput.click();
         });
 
         // Quando selecionar um arquivo
-        fileInput.addEventListener('change', function(e) {
+        elements.fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 handleImageSelection(file);
@@ -216,19 +261,19 @@
         });
 
         // Arrastar e soltar
-        uploadArea.addEventListener('dragover', function(e) {
+        elements.uploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            uploadArea.style.background = '#f8f9fa';
+            elements.uploadArea.style.background = '#f8f9fa';
         });
 
-        uploadArea.addEventListener('dragleave', function(e) {
+        elements.uploadArea.addEventListener('dragleave', function(e) {
             e.preventDefault();
-            uploadArea.style.background = '';
+            elements.uploadArea.style.background = '';
         });
 
-        uploadArea.addEventListener('drop', function(e) {
+        elements.uploadArea.addEventListener('drop', function(e) {
             e.preventDefault();
-            uploadArea.style.background = '';
+            elements.uploadArea.style.background = '';
             
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
@@ -248,8 +293,8 @@
             // Mostrar pré-visualização
             const reader = new FileReader();
             reader.onload = function(e) {
-                imagePreview.src = e.target.result;
-                imagePreview.style.display = 'block';
+                elements.imagePreview.src = e.target.result;
+                elements.imagePreview.style.display = 'block';
             };
             reader.readAsDataURL(file);
 
@@ -260,12 +305,14 @@
         // Função para analisar a imagem
         async function analyzeImage(file) {
             // Mostrar loading
-            loading.style.display = 'block';
-            resultadoDiv.style.display = 'none';
+            elements.loading.style.display = 'block';
+            elements.resultado.style.display = 'none';
 
             try {
                 // Converter imagem para Base64
                 const base64Image = await toBase64(file);
+
+                console.log('📤 Enviando imagem para análise...');
 
                 const response = await fetch(BACKEND_URL + '/api/verificar', {
                     method: 'POST',
@@ -278,9 +325,10 @@
                 });
 
                 const data = await response.json();
+                console.log('📦 Resposta do backend:', data);
 
                 // Esconder loading
-                loading.style.display = 'none';
+                elements.loading.style.display = 'none';
 
                 if (data.sucesso) {
                     showResult(data);
@@ -289,8 +337,9 @@
                 }
 
             } catch (error) {
-                loading.style.display = 'none';
+                elements.loading.style.display = 'none';
                 alert('Erro de conexão: ' + error.message);
+                console.error('Erro completo:', error);
             }
         }
 
@@ -304,19 +353,67 @@
             });
         }
 
-        // Mostrar resultado na tela
+        // ✅ FUNÇÃO CORRIGIDA - Mostrar resultado na tela
         function showResult(data) {
-            const resultado = data.resultado;
+            console.log('📦 Dados recebidos do backend:', data);
             
-            resultadoDiv.className = 'resultado ' + (resultado.autentico ? 'autentico' : 'falso');
-            resultadoDiv.innerHTML = `
+            // ✅ CORREÇÃO: Usar data.analise em vez de data.resultado
+            const resultado = data.analise;
+            
+            // ✅ Verificação de segurança
+            if (!resultado) {
+                console.error('❌ Estrutura de dados inválida:', data);
+                elements.resultado.innerHTML = `
+                    <div class="resultado falso">
+                        <h3>❌ ERRO NA ANÁLISE</h3>
+                        <p>O servidor retornou uma resposta inesperada.</p>
+                        <button class="btn" onclick="location.reload()">🔄 Tentar Novamente</button>
+                    </div>
+                `;
+                elements.resultado.style.display = 'block';
+                return;
+            }
+
+            elements.resultado.className = 'resultado ' + (resultado.autentico ? 'autentico' : 'falso');
+            
+            const html = `
                 <h3>${resultado.autentico ? '✅ PRODUTO AUTÊNTICO' : '❌ PRODUTO FALSIFICADO'}</h3>
-                <p><strong>Marca:</strong> ${resultado.marca_detectada}</p>
-                <p><strong>Confiança:</strong> ${resultado.confianca}%</p>
-                <p><strong>Detalhes:</strong> ${resultado.detalhes}</p>
                 
-                ${data.certificado_id ? `
-                    <p><strong>Certificado ID:</strong> ${data.certificado_id}</p>
+                <div class="score-grid">
+                    <div class="score-item">
+                        <h4>Marca</h4>
+                        <p style="font-size: 1.2em; font-weight: bold;">${resultado.marca_detectada || 'Não identificada'}</p>
+                    </div>
+                    <div class="score-item">
+                        <h4>Confiança</h4>
+                        <p style="font-size: 1.2em; font-weight: bold;">${resultado.confianca || '0'}%</p>
+                    </div>
+                </div>
+
+                <h4>🔍 Características Verificadas:</h4>
+                <ul class="feature-list">
+                    ${(resultado.caracteristicas_analisadas || ['logo_original', 'cores_oficiais', 'qualidade_material']).map(carac => 
+                        `<li>${carac.replace(/_/g, ' ').toUpperCase()}</li>`
+                    ).join('')}
+                </ul>
+
+                ${resultado.problemas_detectados && resultado.problemas_detectados.length > 0 ? `
+                    <h4>⚠️ Problemas Detectados:</h4>
+                    <ul class="feature-list">
+                        ${resultado.problemas_detectados.map(prob => 
+                            `<li class="problema">${prob.replace(/_/g, ' ').toUpperCase()}</li>`
+                        ).join('')}
+                    </ul>
+                ` : ''}
+
+                <p><strong>💡 Recomendação:</strong> ${resultado.recomendacao || 'Consulte um especialista para verificação adicional.'}</p>
+                
+                ${data.certificado ? `
+                    <div class="certificado">
+                        <h4>📄 CERTIFICADO DIGITAL</h4>
+                        <p><strong>ID:</strong> ${data.certificado.id}</p>
+                        <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                    </div>
                 ` : ''}
                 
                 <button class="btn" onclick="location.reload()" style="margin-top: 15px;">
@@ -324,7 +421,8 @@
                 </button>
             `;
             
-            resultadoDiv.style.display = 'block';
+            elements.resultado.innerHTML = html;
+            elements.resultado.style.display = 'block';
         }
 
         // Verificar servidor quando a página carregar
