@@ -1,114 +1,75 @@
-// AUTHENTICERT - BACKEND DE EMERGÊNCIA (100% FUNCIONAL)
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Configuração CRÍTICA para Render
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
-// ✅ ROTA DE SAÚDE - TESTE ESTA PRIMEIRO
+// Rota de saúde
 app.get('/api/health', (req, res) => {
-  console.log('✅ Health check recebido');
-  res.json({
-    status: '✅ ONLINE',
-    message: 'Authenticert Emergency Backend - FUNCIONANDO!',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  res.json({ status: 'OK', message: 'Server is running!' });
 });
 
-// ✅ ROTA DE VERIFICAÇÃO SIMULADA
+// Rota de verificação
 app.post('/api/verificar', (req, res) => {
   try {
     const { imagemUrl } = req.body;
-    
+
     if (!imagemUrl) {
-      return res.status(400).json({
-        sucesso: false,
-        erro: 'URL da imagem é obrigatória'
-      });
+      return res.status(400).json({ sucesso: false, erro: 'imagemUrl é obrigatória' });
     }
 
-    console.log('📸 Imagem recebida, processando...');
-
     // Simulação de IA
-    const marcas = ['NIKE', 'ADIDAS', 'APPLE', 'SAMSUNG', 'GUCCI', 'ROLEX'];
-    const marcaAleatoria = marcas[Math.floor(Math.random() * marcas.length)];
+    const marcas = ['NIKE', 'ADIDAS', 'APPLE', 'SAMSUNG', 'GUCCI'];
+    const marca = marcas[Math.floor(Math.random() * marcas.length)];
     const autentico = Math.random() > 0.4;
-    const confianca = (Math.random() * 40 + 60).toFixed(2);
+    const confianca = (Math.random() * 100).toFixed(2);
 
     const resultado = {
-      autentico: autentico,
-      confianca: confianca,
-      marca_detectada: marcaAleatoria,
-      caracteristicas_analisadas: [
-        'logo_original',
-        'cores_oficiais',
-        'qualidade_material'
-      ],
-      problemas_detectados: autentico ? [] : ['qualidade_abaixo_do_esperado'],
+      autentico,
+      confianca,
+      marca_detectada: marca,
+      caracteristicas_analisadas: ['logo_original', 'cores_oficiais', 'qualidade_material'],
+      problemas_detectados: autentico ? [] : ['qualidade_abaixo_esperado'],
       recomendacao: autentico 
         ? '✅ Produto genuíno - Pode comprar com confiança!'
         : '⚠️ Possível falsificação - Recomendamos verificação adicional'
     };
 
-    // Simular tempo de processamento
-    setTimeout(() => {
-      res.json({
-        sucesso: true,
-        analise: resultado, // ✅ Note: agora é "analise" e não "resultado"
-        certificado: {
-          id: 'AUTH-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-          data_emissao: new Date().toISOString()
-        },
-        mensagem: 'Análise concluída com sucesso!'
-      });
-    }, 2000);
+    const certificadoId = 'AUTH-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    res.json({
+      sucesso: true,
+      analise: resultado,
+      certificado: {
+        id: certificadoId,
+        data_emissao: new Date().toISOString()
+      },
+      mensagem: 'Análise concluída com sucesso!'
+    });
 
   } catch (error) {
-    console.error('Erro:', error);
-    res.status(500).json({
-      sucesso: false,
-      erro: 'Erro interno: ' + error.message
-    });
+    console.error('Erro em /api/verificar:', error);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
 });
 
-// ✅ ROTA DE ESTATÍSTICAS SIMULADA
+// Rota de estatísticas
 app.get('/api/estatisticas', (req, res) => {
   res.json({
     sucesso: true,
     estatisticas: {
-      total_verificacoes: 1542,
-      produtos_autenticos: 1120,
-      produtos_falsos: 422,
-      taxa_autenticidade: '72.63%',
+      total_verificacoes: 1500,
+      produtos_autenticos: 1100,
+      produtos_falsos: 400,
+      taxa_autenticidade: '73.33%',
       marcas_verificadas: ['NIKE', 'ADIDAS', 'APPLE', 'SAMSUNG', 'GUCCI']
     }
   });
 });
 
-// ✅ ROTA DE CERTIFICADO SIMULADA
-app.get('/api/certificado/:id', (req, res) => {
-  res.json({
-    sucesso: true,
-    certificado: {
-      id: req.params.id,
-      imagem_url: 'https://example.com/produto.jpg',
-      resultado: {
-        autentico: true,
-        confianca: '95.50',
-        marca_detectada: 'NIKE'
-      },
-      data_criacao: new Date().toISOString()
-    }
-  });
-});
-
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor de emergência rodando na porta ${PORT}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
