@@ -8,8 +8,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // Configuração do Supabase - SUBSTITUA COM SUAS CREDENCIAIS!
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;https://dxgrjrtwuarowoxnjrzz.supabase.co
+const supabaseKey = process.env.SUPABASE_KEY;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4Z3JqcnR3dWFyb3dveG5qcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc0MjksImV4cCI6MjA3NzE2MzQyOX0.c6wneTJNJ49BpB3KWt-kQHkc-92qyM-U3TCaUba9-6o
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Simulação de IA para verificação
