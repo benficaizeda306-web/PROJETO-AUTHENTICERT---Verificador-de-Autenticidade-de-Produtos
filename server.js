@@ -1,18 +1,13 @@
-// SERVIDOR AUTHENTICERT - CORRIGIDO PARA SUPABASE
+// SERVIDOR AUTHENTICERT - SEM SUPABASE (PARA TESTE)
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// ✅ SUAS CREDENCIAIS SUPABASE
-const supabaseUrl = 'https://dxgrjrtwuarowoxnjrzz.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4Z3JqcnR3dWFyb3dveG5qcnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc0MjksImV4cCI6MjA3NzE2MzQyOX0.c6wneTJNJ49BpB3KWt-kQHkc-92qyM-U3TCaUba9-6o';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-console.log('✅ Supabase configurado!');
+// Simulando um "banco de dados" em memória
+let verificacoes = [];
 
 // IA para Verificação
 class SistemaIA {
@@ -51,33 +46,18 @@ class SistemaIA {
 
 const ia = new SistemaIA();
 
-// Rota de saúde - TESTE PRIMEIRO ESTA
-app.get('/api/health', async (req, res) => {
-  try {
-    // Teste SIMPLES - só verificar se consegue conectar
-    const { data, error } = await supabase
-      .from('verificacoes')
-      .select('id')
-      .limit(1);
-
-    res.json({
-      status: '✅ ONLINE',
-      message: 'Authenticert - Backend funcionando!',
-      timestamp: new Date().toISOString(),
-      database: error ? '❌ ERRO: ' + error.message : '✅ CONECTADO',
-      supabase: 'CONFIGURADO'
-    });
-  } catch (error) {
-    res.json({
-      status: '⚠️ ONLINE COM ERROS',
-      error: error.message,
-      supabase: 'ERRO'
-    });
-  }
+// Rota de saúde
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: '✅ ONLINE',
+    message: 'Authenticert - Backend SIMPLES (sem banco)',
+    timestamp: new Date().toISOString(),
+    total_verificacoes: verificacoes.length
+  });
 });
 
 // Rota principal - Verificação
-app.post('/api/verificar', async (req, res) => {
+app.post('/api/verificar', (req, res) => {
   try {
     const { imagemUrl } = req.body;
     
@@ -93,37 +73,19 @@ app.post('/api/verificar', async (req, res) => {
     // 1. Análise com IA
     const resultadoIA = ia.analisarProduto(imagemUrl);
     
-    // 2. Gerar certificado único (TEXT - não UUID)
+    // 2. Gerar certificado único
     const certificadoId = 'AUTH-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     
-    // 3. Salvar no Supabase
-    const { data, error } = await supabase
-      .from('verificacoes')
-      .insert([
-        {
-          imagem_url: imagemUrl.substring(0, 500),
-          resultado: resultadoIA,
-          certificado_id: certificadoId
-        }
-      ])
-      .select();
+    // 3. Salvar em memória
+    const verificacao = {
+      imagem_url: imagemUrl.substring(0, 500),
+      resultado: resultadoIA,
+      certificado_id: certificadoId,
+      data_criacao: new Date().toISOString()
+    };
+    verificacoes.push(verificacao);
 
-    if (error) {
-      console.error('❌ Erro no Supabase:', error);
-      // Mesmo com erro, retorna resultado (mas sem salvar)
-      return res.json({
-        sucesso: true,
-        certificado: {
-          id: certificadoId,
-          data_emissao: new Date().toISOString()
-        },
-        analise: resultadoIA,
-        mensagem: 'Análise concluída (dados não salvos)',
-        aviso: 'Erro no banco: ' + error.message
-      });
-    }
-
-    console.log('✅ Verificação salva no Supabase!');
+    console.log('✅ Verificação salva em memória!');
 
     // 4. Retornar resultado
     res.json({
@@ -146,17 +108,13 @@ app.post('/api/verificar', async (req, res) => {
 });
 
 // Buscar certificado
-app.get('/api/certificado/:id', async (req, res) => {
+app.get('/api/certificado/:id', (req, res) => {
   try {
     const { id } = req.params;
     
-    const { data, error } = await supabase
-      .from('verificacoes')
-      .select('*')
-      .eq('certificado_id', id)
-      .single();
+    const verificacao = verificacoes.find(v => v.certificado_id === id);
 
-    if (error || !data) {
+    if (!verificacao) {
       return res.status(404).json({
         sucesso: false,
         erro: 'Certificado não encontrado'
@@ -165,7 +123,7 @@ app.get('/api/certificado/:id', async (req, res) => {
 
     res.json({
       sucesso: true,
-      certificado: data
+      certificado: verificacao
     });
 
   } catch (error) {
@@ -177,29 +135,12 @@ app.get('/api/certificado/:id', async (req, res) => {
 });
 
 // Estatísticas
-app.get('/api/estatisticas', async (req, res) => {
+app.get('/api/estatisticas', (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('verificacoes')
-      .select('*');
-
-    if (error) {
-      return res.json({
-        sucesso: true,
-        estatisticas: {
-          total_verificacoes: 0,
-          produtos_autenticos: 0,
-          produtos_falsos: 0,
-          taxa_autenticidade: '0%',
-          marcas_verificadas: []
-        }
-      });
-    }
-
-    const total = data.length;
-    const autenticos = data.filter(v => v.resultado.autentico).length;
+    const total = verificacoes.length;
+    const autenticos = verificacoes.filter(v => v.resultado.autentico).length;
     const falsos = total - autenticos;
-    const marcas = [...new Set(data.map(v => v.resultado.marca_detectada))];
+    const marcas = [...new Set(verificacoes.map(v => v.resultado.marca_detectada))];
 
     res.json({
       sucesso: true,
@@ -226,10 +167,32 @@ app.get('/api/estatisticas', async (req, res) => {
   }
 });
 
+// Listar verificações
+app.get('/api/verificacoes', (req, res) => {
+  try {
+    const { limite = 20 } = req.query;
+    const verificacoesRecentes = verificacoes
+      .sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao))
+      .slice(0, parseInt(limite));
+
+    res.json({
+      sucesso: true,
+      verificacoes: verificacoesRecentes,
+      total: verificacoesRecentes.length
+    });
+
+  } catch (error) {
+    res.json({
+      sucesso: true,
+      verificacoes: [],
+      total: 0
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('🚀 AUTHENTICERT - BACKEND INICIADO!');
+  console.log('🚀 AUTHENTICERT - BACKEND SIMPLES INICIADO!');
   console.log(`📍 Porta: ${PORT}`);
   console.log(`🌐 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📊 Supabase: ${supabaseUrl}`);
 });
